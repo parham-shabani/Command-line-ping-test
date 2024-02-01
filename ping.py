@@ -7,6 +7,18 @@ import select
 
 ICMP_ECHO_REQUEST = 8
 
+def get_ip_address(domain):
+    try:
+        ip_addresses = socket.gethostbyname_ex(domain)[2]
+        if ip_addresses:
+            print(f"\nIP: {ip_addresses[0]}")
+        else:
+            print(f"\nNo IP addresses found for domain: {domain}")
+    except socket.gaierror as e:
+        print(f"\nError occurred during DNS resolution: {e}")
+    
+    return None
+
 def checksum(data):
     if len(data) % 2 != 0:
         data += b'\x00'
@@ -26,6 +38,11 @@ def create_packet():
     header_with_checksum = struct.pack('!BBHHH', ICMP_ECHO_REQUEST, 0, checksum_val, identifier, 1)
     packet = header_with_checksum + payload
     return packet
+
+def parse_reply(reply):
+    header = reply[20:28]
+    rtt = struct.unpack('d', header)[0]
+    return rtt
 
 def ping(host, num_requests):
     try:
@@ -47,11 +64,12 @@ def ping(host, num_requests):
     try:
         for _ in range(num_requests):
             icmp_socket.sendto(packet, (ip, 1))
+
             start_time = time.time()
             ready, _, _ = select.select([icmp_socket], [], [], 2)
-            
             if ready:
                 reply, address = icmp_socket.recvfrom(1024)
+                rtt = parse_reply(reply)
                 end_time = time.time()
                 elapsed_time = (end_time - start_time) * 1000
                 total_rtt += elapsed_time
@@ -67,7 +85,7 @@ def ping(host, num_requests):
 
     finally:
         icmp_socket.close()
-        
+
 
     if num_requests > 0:
         avg_ping = total_rtt / num_requests
@@ -81,18 +99,20 @@ def ping(host, num_requests):
 
     print(f"\nPing statistics for {host}:")
     print(f"    Packets: Sent = {num_requests}, Received = {num_requests - lost_packets}, Lost = {lost_packets} ({packet_loss_percentage:.2f}% loss)")
-    print(f"Approximate round trip times in milliseconds:")
-    print(f"    Minimum = {min_ping:.2f}ms, Maximum = {max_ping:.2f}ms, Average = {avg_ping:.2f}ms")
+    if (packet_loss_percentage != 100):
+        print(f"Approximate round trip times in milliseconds:")
+        print(f"    Minimum = {min_ping:.2f}ms, Maximum = {max_ping:.2f}ms, Average = {avg_ping:.2f}ms")
 
 
 def main():
     if len(sys.argv) != 3:
-        print("Usage: python3 ping.py <host> <num_requests>")
+        print("Usage: python3 ping.py <domain or host> <num_requests>")
         sys.exit(1)
 
     host = sys.argv[1]
     num_requests = int(sys.argv[2])
     ping(host, num_requests)
+    get_ip_address(host)
 
 if __name__ == "__main__":
     main()
