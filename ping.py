@@ -27,11 +27,6 @@ def create_packet():
     packet = header_with_checksum + payload
     return packet
 
-def parse_reply(reply):
-    header = reply[20:28]
-    rtt = struct.unpack('d', header)[0]
-    return rtt
-
 def ping(host, num_requests):
     try:
         ip = socket.gethostbyname(host)
@@ -52,12 +47,12 @@ def ping(host, num_requests):
     try:
         for _ in range(num_requests):
             icmp_socket.sendto(packet, (ip, 1))
-
             start_time = time.time()
-            ready, _, _ = select.select([icmp_socket], [], [], 2)
+
+            ready = select.select([icmp_socket], [], [], 2)
             if ready:
                 reply, address = icmp_socket.recvfrom(1024)
-                rtt = parse_reply(reply)
+
                 end_time = time.time()
                 elapsed_time = (end_time - start_time) * 1000
                 total_rtt += elapsed_time
