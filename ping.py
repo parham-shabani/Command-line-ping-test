@@ -7,18 +7,6 @@ import select
 
 ICMP_ECHO_REQUEST = 8
 
-def get_ip_address(domain):
-    try:
-        ip_addresses = socket.gethostbyname_ex(domain)[2]
-        if ip_addresses:
-            print(f"\nIP: {ip_addresses[0]}")
-        else:
-            print(f"\nNo IP addresses found for domain: {domain}")
-    except socket.gaierror as e:
-        print(f"\nError occurred during DNS resolution: {e}")
-    
-    return None
-
 def checksum(data):
     if len(data) % 2 != 0:
         data += b'\x00'
@@ -101,7 +89,9 @@ def ping(host, num_requests):
     print(f"    Packets: Sent = {num_requests}, Received = {num_requests - lost_packets}, Lost = {lost_packets} ({packet_loss_percentage:.2f}% loss)")
     if (packet_loss_percentage != 100):
         print(f"Approximate round trip times in milliseconds:")
-        print(f"    Minimum = {min_ping:.2f}ms, Maximum = {max_ping:.2f}ms, Average = {avg_ping:.2f}ms")
+        print(f"    Minimum = {min_ping:.2f}ms, Maximum = {max_ping:.2f}ms, Average = {avg_ping:.2f}ms\n")
+
+    print(f"IP: {ip}")    
 
 
 def main():
@@ -112,7 +102,6 @@ def main():
     host = sys.argv[1]
     num_requests = int(sys.argv[2])
     ping(host, num_requests)
-    get_ip_address(host)
 
 if __name__ == "__main__":
     main()
